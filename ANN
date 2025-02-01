@@ -1,0 +1,86 @@
+class ANN:
+  def __init__(self):
+    self.weightdict={}
+    self.biasdict={}
+    self.activations=[]
+    self.neurons=[]
+    self.activationvalues=[]
+    self.layercount=0
+    self.initmethod='he'
+  def initializeweight(self,shape):
+    if self.initmethod=='he':
+      limit=math.sqrt(6/shape[0])
+    elif self.initmethod=='xavier':
+      limit=math.sqrt(6/sum(shape))
+    else:
+      raise ValueError("Unsupported initialization method. Choose 'xavier', 'he'")
+    return np.random.uniform(-limit,limit,size=shape)
+  def add(self,neurons,activation,inputshape=None):
+    if self.layercount==0 and inputshape!=None:
+      self.neurons.append(inputshape[1])
+    self.neurons.append(neurons)
+    self.activations.append(activation)
+    self.weightdict[self.layercount]=self.initializeweight(self,(self.neurons[-1],self.neurons[-2]))
+    self.biasdict[self.layercount]=self.intializeweight(self,(1,self.neurons[-1]))
+    self.layercount+=1
+    self.loss='mse'
+  def activation(self,x,activation):
+    if activation=='linear':
+      return x
+    elif activation=='sigmoid':
+      return 1/(1+np.exp(-x))
+    elif activation=='tanh':
+      return np.tanh(x)
+    elif activation=='relu':
+      return np.maximum(0,x)
+    elif activation=='leakyrelu':
+      return np.maximum(0.01*x,x)
+    elif activation=='softmax':
+      return np.exp(x)/np.sum(np.exp(x),axis=1,keepdims=True)
+    else:
+      raise ValueError("Unsupported activation function. Choose 'linear', 'sigmoid', 'tanh', 'relu', 'leakyrelu', 'softmax'")
+  def forward(self,x):
+    for i in range(self.layercount):
+      dx=np.dot(x,self.weightdict[i])+self.biasdict[i]
+      x=self.activation(dx,self.activations[i])
+      self.activationvalues.append(x)
+    return x
+  def self.loss(self,y_true,y_pred):
+    if self.loss=='mse':
+      return (y_true-y_pred)**2
+    elif self.loss=='binary_crossentropy':
+      return -y_true*np.log(y_pred)-(1-y_true)*np.log(1-y_pred)
+    elif self.loss=='categorical_crossentropy':
+      return -np.sum(y_true*np.log(y_pred),axis=1)
+    else:
+      raise ValueError("Unsupported loss function. Choose 'mse', 'binary_crossentropy', 'categorical_crossentropy'")
+  def lossderivative(self,y_true,y_pred,loss):
+    if loss=='mse':
+      return 2*(y_true-y_pred):
+    elif loss=='binary_crossentropy' or self.loss=='categorical_crossentropy':
+      return y_pred-y_true
+    else:
+      raise ValueError("Unsupported loss function. Choose 'mse', 'binary_crossentropy', 'categorical_crossentropy'")
+  def activationderivative(self,x,activation):
+    if activation=='linear':
+      return 1
+    elif activation=='sigmoid':
+      return self.activation(x,'sigmoid')*(1-self.activation(x,'sigmoid'))
+    elif activation=='tanh':
+      return 1-self.activation(x,'tanh')**2
+  def backward(self,x,y,z,neta):
+    h=self.lossderivative(y,z,self.loss)
+    for j in range(self.layercount,-1,0):
+      h=h*self.activationderivative(x,self.activations[j])
+      self.weightdict[j]-=neta*np.dot(self.activationvalues[j-1].T,h)
+      self.biasdict[j]-=neta*np.sum(h,axis=0)
+      h=np.dot(h,self.weightdict[j].T)
+
+  def fit(self,x,y,epochs,neta):
+    self.activationvalues.append(x)
+    for i in range(epochs):
+      z=self.forward(x)
+      self.backward(x,y,z,neta)
+    return self.weightdict,self.biasdict
+  def predict(x):
+    return self.forward(x)
